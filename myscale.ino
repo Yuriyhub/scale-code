@@ -24,6 +24,8 @@ WiFiClient client;
 // Setup the MQTT client class by passing in the WiFi client and MQTT server and login details.
 Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO_KEY);
 
+
+
 /************ Setting definitions for scale ******************/
 
 #define calibration_factor -22795.0 //-7050.0 //This value is obtained using the SparkFun_HX711_Calibration sketch
@@ -31,7 +33,7 @@ Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO
 #define DOUT 0  //Pin connected to HX711 (DT) data output pin
 #define CLK 12 // Pin connected to HX711 (SCK)clk pin
 #define NUM_MEASUREMENTS 10 // number of measurements
-#define THRESHOLD 2 // measures only if the wight is greater than 2kg. convert this value to pounds if you're not using SI units.
+#define THRESHOLD 5 // measures only if the wight is greater than 2kg. convert this value to pounds if you're not using SI units.
 #define THRESHOLD1 0.2 //restart averaging if the weight changes more than 0.2 kg
 
 //int* myWeight;
@@ -66,24 +68,29 @@ void MQTT_connect();
 
 void setup() {
   Serial.begin(115200);
-  delay(10);
-
-  Serial.println(F("Adafruit MQTT demo"));
+  WiFi.disconnect();
+  delay(3000);
+//  delay(10);
+// To output wifi information for debugging
+  Serial.setDebugOutput(true);
+  WiFi.printDiag(Serial);
+  
+  
 
   // Connect to WiFi access point.
   Serial.println(); Serial.println();
   Serial.print("Connecting to ");
-  Serial.println(WLAN_SSID);
+  //Serial.println(WLAN_SSID);
 
   WiFi.begin(WLAN_SSID, WLAN_PASS);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+  while ((!(WiFi.status() == WL_CONNECTED))){
+    delay(300);
     Serial.print(".");
   }
   Serial.println();
 
   Serial.println("WiFi connected");
-  Serial.println("IP address: "); Serial.println(WiFi.localIP());
+  Serial.println("IP address: "); Serial.println(WiFi.localIP().toString());
  
  
   scale.set_scale(calibration_factor); //This value is obtained by using the SparkFun_HX711_Calibration sketch
@@ -99,11 +106,12 @@ void loop() {
   MQTT_connect();
 
   
-  //ESP.wdtFeed();
+  ESP.wdtFeed();
 
 // weight avg function
 
 weight = scale.get_units();
+float checkWeight = 0;
   float avgweight = 0;
   if (weight > THRESHOLD) { // Takes measures if the weight is greater than the threshold
     float weight0 = scale.get_units();
@@ -123,28 +131,34 @@ weight = scale.get_units();
     Serial.print("Measured weight: ");
     Serial.print(avgweight, 1);
     Serial.println(" kg");
-
+    
     char result[8]; // Buffer big enough for 7-character float
     dtostrf(avgweight, 6, 1, result);
 
      //save myWeight to Adafruit.io
      //myWeight->save(avgweight);
-    
+     bool check = true;
     while (scale.get_units() > THRESHOLD) {
-     // ESP.wdtFeed();
+      ESP.wdtFeed();
+        // Now we can publish stuff!
+         Serial.print(F("\nSending myValue "));
+         Serial.print((avgweight));
+         Serial.print("...");
+         delay(5000);
+         if (! my_weight.publish(avgweight)) {
+         Serial.println(F("Failed"));
+          } else {
+            Serial.println(F("OK!"));
+            
+           }
+      
     }
+    delay(2000);
+   
   }
   
 
-  // Now we can publish stuff!
-  Serial.print(F("\nSending myValue "));
-  Serial.print((avgweight));
-  Serial.print("...");
-  if (! my_weight.publish(avgweight)) {
-    Serial.println(F("Failed"));
-  } else {
-    Serial.println(F("OK!"));
-  }
+
 
   // ping the server to keep the mqtt connection alive
   // NOT required if you are publishing once every KEEPALIVE seconds
@@ -165,6 +179,7 @@ void MQTT_connect() {
   if (mqtt.connected()) {
     return;
   }
+  
 
   Serial.print("Connecting to MQTT... ");
 
@@ -178,8 +193,10 @@ void MQTT_connect() {
        if (retries == 0) {
          // basically die and wait for WDT to reset me
          while (1);
+         //ESP.restart();
        }
   }
+  Serial.println();
   Serial.println("MQTT Connected!");
 }
 
