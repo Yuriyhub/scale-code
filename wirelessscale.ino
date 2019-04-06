@@ -43,10 +43,10 @@ float prev_wight = 0.0;
 long now = millis();
 long lastMeasure = 0;
 
-// Don't change the function below. This functions connects your ESP8266 to your router
+// Connects your ESP8266 to your router
 void setup_wifi() {
   delay(10);
-  // We start by connecting to a WiFi network
+
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
@@ -60,9 +60,7 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
-// This functions is executed when some device publishes a message to a topic that your ESP8266 is subscribed to
-// Change the function below to add logic to your program, so when a device publishes a message to a topic that 
-// your ESP8266 is subscribed you can actually do something
+// Functions is executed when some device publishes a message to a topic that your ESP8266 is subscribed to
 void callback(String topic, byte* message, unsigned int length) {
   Serial.print("Message arrived on topic: ");
   Serial.print(topic);
@@ -77,8 +75,7 @@ void callback(String topic, byte* message, unsigned int length) {
 
 }
 
-// This functions reconnects your ESP8266 to your MQTT broker
-// Change the function below if you want to subscribe to more topics with your ESP8266 
+// Functions that reconnects your ESP8266 to your MQTT broker
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
@@ -96,7 +93,7 @@ void reconnect() {
   }
 }
 
-// The setup function sets your ESP GPIOs to Outputs, starts the serial communication at a baud rate of 115200
+
 // Sets your mqtt broker and sets the callback function
 // The callback function is what receives messages and actually controls the LEDs
 void setup() {
@@ -115,8 +112,8 @@ void setup() {
   client.setCallback(callback);
 }
 
-// For this project, you don't need to change anything in the loop function. 
-// Basically it ensures that you ESP is connected to your broker
+ 
+// Ensures that you ESP is connected to your broker
 void loop() {
   if (!client.connected()) {
     reconnect();
@@ -128,7 +125,7 @@ void loop() {
 
 digitalWrite(ledGPIO5, LOW);
 
-    // weight avg function
+// Function for calculating average weight 
 weight = scale.get_units();
 float checkWeight = 0;
   float avgweight = 0;
@@ -155,7 +152,8 @@ float checkWeight = 0;
     Serial.print(avgweight, 1);
     Serial.println(" kg");
     dtostrf(avgweight, 6, 2, result);
-//Jason string sent to raspberrypi
+    
+    //Jason string sent to raspberrypi
     String dhtReadings = "{ \"weight\": \"" + String(result) + "\"}";
     dhtReadings.toCharArray(data, (dhtReadings.length() + 1));
 
@@ -164,7 +162,7 @@ float checkWeight = 0;
       ESP.wdtFeed();
 
      now = millis();
-  // Publishes new temperature and humidity every 10 seconds
+  // Publishes new weight every 10 seconds
   if (now - lastMeasure > 20000) {
     lastMeasure = now;
     
